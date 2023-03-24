@@ -1,2 +1,29 @@
-div
-    h2.text-center Create account
+extends ../layout/index
+
+block content
+    div.py-10
+        h1.text-4xl.my-10.font-extrabold.text-center Real 
+            span.font-normal Estate
+        h2.text-center.text-2xl.font-extrabold= page
+
+        div.mt-8.mx-auto.max-w-md
+            div.bg-white.py-8.px-4.shadow
+                form.space-y-5
+                    div
+                        label.block.text-sm.uppercase.text-gray-500.mb-2.font-bold(for='name') Name
+                        input#name.w-full.px-3.py-2.border.border-gray-300.rounded-md.placeholder-gray-400(placeholder='Your Name' type='text' name='name')
+                    div
+                        label.block.text-sm.uppercase.text-gray-500.mb-2.font-bold(for='email') Email
+                        input#email.w-full.px-3.py-2.border.border-gray-300.rounded-md.placeholder-gray-400(placeholder='person@mail.com' type='email' name='email')
+                    div
+                        label.block.text-sm.uppercase.text-gray-500.mb-2.font-bold(for='password') Password
+                        input#password.w-full.px-3.py-2.border.border-gray-300.rounded-md.placeholder-gray-400(placeholder='password' type='password' name='password')
+                    div
+                        label.block.text-sm.uppercase.text-gray-500.mb-2.font-bold(for='confirm_password') Confirm Password
+                        input#confirm_password.w-full.px-3.py-2.border.border-gray-300.rounded-md.placeholder-gray-400(placeholder='confirm your password' type='password' name='confirm_password')
+                    
+                    div.flex.items-center.justify-between
+                        a.text-gray-500.text-xs(href='/auth/login') Login
+                        a.text-gray-500.text-xs(href='/auth/forgot-password') Forgot my Password
+
+                    input(type='submit' value='Create Account' class='w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 cursor-pointer rounded-md')
