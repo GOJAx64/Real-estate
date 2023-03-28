@@ -1,7 +1,20 @@
 import express from 'express';
 import userRoutes from './src/routes/userRoutes.js';
+import db from './src/config/db.js';
 
 const app = express();
+
+//JSON read
+app.use( express.urlencoded({ extended: true }) );
+
+//DB connection
+try {
+    await db.authenticate();
+    db.sync();
+    console.log('Connected database in localhost')
+} catch (error) {
+    console.log(error);
+}
 
 //PUG
 app.set('view engine', 'pug');
