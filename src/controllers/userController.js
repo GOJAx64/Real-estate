@@ -1,6 +1,7 @@
 import { check, validationResult } from 'express-validator';
 import { generateId } from '../helpers/token.js';
 import User from '../models/User.js';
+import { registrationEmail } from '../helpers/emails.js';
 
 export const loginForm = (req, res) => {
     res.render('auth/login', {
@@ -9,11 +10,14 @@ export const loginForm = (req, res) => {
     })
 }
 
+
 export const registerForm = (req, res) => {
     res.render('auth/register', {
-        page: 'Create Account'
+        page: 'Create Account',
+        csrfToken: req.csrfToken()
     })
 }
+
 
 export const register = async(req, res) => {
     const { name, email, password } = req.body;
@@ -29,6 +33,7 @@ export const register = async(req, res) => {
     if( !result.isEmpty() ) {
         return res.render('auth/register', {
             page: 'Create Account',
+            csrfToken: req.csrfToken(),
             errors: result.array(),
             user: {
                 name,
@@ -43,6 +48,7 @@ export const register = async(req, res) => {
     if(userExist) {
         return res.render('auth/register', {
             page: 'Create Account',
+            csrfToken: req.csrfToken(),
             errors: [{ msg: 'The user email is already registered' }],
             user: {
                 name,
@@ -50,13 +56,50 @@ export const register = async(req, res) => {
             } 
         }) 
     }
-    await User.create({ name, email, password, token: generateId() });
+
+    const user = await User.create({ 
+        name, 
+        email, 
+        password, 
+        token: generateId() 
+    });
     
+    //sent email for confirmation
+    registrationEmail({
+        name: user.name,
+        email: user.email,
+        token: user.token,
+    });
+
     res.render('templates/message', {
         page: 'Account Created Successfully',
         errors: 'We send and email to confirm, click on the link'   
     }) 
 }
+
+
+export const confirm = async(req, res) => {
+    const { token } = req.params;
+    const user = await User.findOne({ where:{ token } });
+    
+    if(!user) {
+        return res.render('auth/confirm-account', {
+            page: 'Failed to confirm account',
+            message: 'There was an error confirming the account',
+            error: true
+        })
+    }
+
+    user.token = null;
+    user.confirmed = true;
+    await user.save();
+    
+    return res.render('auth/confirm-account', {
+        page: 'Confirmed Account',
+        message: 'Account confirmed successfully',
+    })
+}
+
 
 export const forgotPasswordForm = (req, res) => {
     res.render('auth/forgot-password', {
