@@ -4,7 +4,10 @@ import {
     loginForm, 
     register, 
     registerForm, 
-    confirm} from '../controllers/userController.js';
+    confirm,
+    resetPassword,
+    verifyToken,
+    newPassword} from '../controllers/userController.js';
 
 const router =  express.Router();
 
@@ -13,5 +16,8 @@ router.get('/register', registerForm);
 router.post('/register', register);
 router.get('/confirm/:token', confirm);
 router.get('/forgot-password', forgotPasswordForm);
+router.post('/forgot-password', resetPassword)
+router.get('/forgot-password/:token', verifyToken);
+router.post('/forgot-password/:token', newPassword);
 
 export default router;
