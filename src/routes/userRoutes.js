@@ -7,11 +7,14 @@ import {
     confirm,
     resetPassword,
     verifyToken,
-    newPassword} from '../controllers/userController.js';
+    newPassword,
+    authenticate} from '../controllers/userController.js';
 
 const router =  express.Router();
 
 router.get('/login', loginForm);
+router.post('/login', authenticate);
+router.post('/logout', );
 router.get('/register', registerForm);
 router.post('/register', register);
 router.get('/confirm/:token', confirm);

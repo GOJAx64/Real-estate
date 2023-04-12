@@ -1,16 +1,70 @@
 import { check, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
-import { generateId } from '../helpers/token.js';
+import { generateId, generateJWT } from '../helpers/token.js';
 import { registrationEmail, restorePasswordEmail } from '../helpers/emails.js';
 
 export const loginForm = (req, res) => {
     res.render('auth/login', {
-        authenticated: true,
-        page: 'Login'
+        page: 'Login',
+        csrfToken: req.csrfToken()
     })
 }
 
+export const authenticate = async(req, res) => {
+    await check('email').isEmail().withMessage('El Email es Obligatorio').run(req)
+    await check('password').notEmpty().withMessage('El Password es Obligatorio').run(req)
+    
+    const { email, password} = req.body;
+    let result = validationResult(req);
+    
+    if(!result.isEmpty()) {
+        return res.render('auth/login', {
+            page: 'Login',
+            csrfToken : req.csrfToken(),
+            errors: result.array()
+        })
+    }
+
+    // Comprobar si el usuario existe
+    const user = await User.findOne({ where:{ email } })
+    if(!user) {
+        return res.render('auth/login', {
+            page: 'Login',
+            csrfToken : req.csrfToken(),
+            errors: [{msg: 'User does not exist'}]
+        })
+    }
+    console.log('El usuario existe')
+
+    // Comprobar si el usuario esta confirmado
+    if(!user.confirmed) {
+        return res.render('auth/login', {
+            page: 'Login',
+            csrfToken : req.csrfToken(),
+            errors: [{msg: 'Your account has not been confirmed'}]
+        })
+    }
+
+    // Revisar el password
+    if(!user.verifyPassword(password)) {
+        return res.render('auth/login', {
+            page: 'Login',
+            csrfToken : req.csrfToken(),
+            errors: [{msg: 'Incorrect Password'}]
+        })
+    }
+
+    // Autenticar al usuario
+    const token = generateJWT({ id: user.id, name: user.name })
+
+    // Almacenar en un cookie
+    return res.cookie('_token', token, {
+        httpOnly: true,
+        // secure: true,
+        // sameSite: true
+    }).redirect('/my-properties')
+}
 
 export const registerForm = (req, res) => {
     res.render('auth/register', {
@@ -74,7 +128,7 @@ export const register = async(req, res) => {
 
     res.render('templates/message', {
         page: 'Account Created Successfully',
-        message: 'We send and email to confirm, click on the link'   
+        message: 'We send and email to confirm, look at your inbox'   
     }) 
 }
 
@@ -146,7 +200,7 @@ export const resetPassword = async(req, res) => {
 
     res.render('templates/message', {
         page: 'Restore your password',
-        message: 'We sent an email with instructions'
+        message: 'We sent an email with instructions, check your inbox'
     });
 
 }
@@ -154,7 +208,7 @@ export const resetPassword = async(req, res) => {
 export const verifyToken = async(req, res) => {
     const { token } = req.params;
 
-    const user = await User.findOne( {where: {token}} );
+    const user = await User.findOne({ where:{ token } });
     
     if(!user) {
         return res.render('auth/confirm-account', {
@@ -174,11 +228,10 @@ export const verifyToken = async(req, res) => {
 
 export const newPassword = async(req, res) => {
     await check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters').run(req);
-    let result = validationResult(req)
+    
+    let result = validationResult(req);
 
-    // Verificar que el resultado este vacio
     if(!result.isEmpty()) {
-        // Errores
         return res.render('auth/reset-password', {
             pagina: 'Restore your password',
             csrfToken : req.csrfToken(),
@@ -189,10 +242,8 @@ export const newPassword = async(req, res) => {
     const { token } = req.params
     const { password } = req.body;
 
-    // Identificar quien hace el cambio
     const user = await User.findOne({ where:{ token } })
     
-    // Hashear el nuevo password
     const salt = await bcrypt.genSalt(10)
     user.password = await bcrypt.hash( password, salt);
     user.token = null;
